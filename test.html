@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photo Preview App</title>
+    <style>
+      #camera {
+        width: 100%;
+        max-width: 600px;
+        margin: auto;
+        display: block;
+      }
+      #controls {
+        text-align: center;
+        margin-top: 10px;
+      }
+      #warning {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="camera" autoplay></video>
+    <div id="controls">
+      <button id="zoomIn">Zoom In</button>
+      <button id="zoomOut">Zoom Out</button>
+      <p id="warning"></p>
+    </div>
+
+    <script>
+      const video = document.getElementById("camera");
+      const warning = document.getElementById("warning");
+      const zoomInButton = document.getElementById("zoomIn");
+      const zoomOutButton = document.getElementById("zoomOut");
+
+      let currentZoom = 1;
+
+      async function initCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
+          video.srcObject = stream;
+
+          const track = stream.getVideoTracks()[0];
+          const capabilities = track.getCapabilities();
+
+          if (capabilities.zoom) {
+            zoomInButton.addEventListener("click", () => {
+              if (currentZoom < capabilities.zoom.max) {
+                currentZoom += 0.1; // adjust zoom increment as needed
+                track.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+              }
+            });
+            zoomOutButton.addEventListener("click", () => {
+              if (currentZoom > capabilities.zoom.min) {
+                currentZoom -= 0.1; // adjust zoom decrement as needed
+                track.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+              }
+            });
+          } else {
+            zoomInButton.disabled = true;
+            zoomOutButton.disabled = true;
+            warning.textContent =
+              "Warning: Zoom capability is not supported on this device.";
+          }
+
+          if (
+            capabilities.focusMode &&
+            capabilities.focusMode.includes("continuous")
+          ) {
+            track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+          } else {
+            warning.textContent +=
+              " Warning: Autofocus capability is not supported on this device.";
+          }
+
+          video.addEventListener("playing", () => {
+            const settings = track.getSettings();
+            if (settings.exposureMode !== "manual") {
+              warning.textContent =
+                "Warning: Camera exposure mode is automatic. Adjust lighting for best results.";
+            }
+          });
+        } catch (error) {
+          console.error("Error accessing the camera:", error);
+          warning.textContent =
+            "Error accessing the camera. Please ensure camera permissions are granted.";
+        }
+      }
+
+      initCamera();
+    </script>
+  </body>
+</html>
