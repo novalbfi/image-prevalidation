@@ -18,6 +18,10 @@
       #warning {
         color: red;
       }
+      .slider {
+        width: 80%;
+        margin: 10px auto;
+      }
     </style>
   </head>
   <body>
@@ -26,13 +30,32 @@
       <button id="zoomIn">Zoom In</button>
       <button id="zoomOut">Zoom Out</button>
       <p id="warning"></p>
+      <input
+        type="range"
+        id="zoomSlider"
+        class="slider"
+        min="1"
+        max="3"
+        step="0.1"
+        value="1"
+      />
+      <input
+        type="range"
+        id="focusSlider"
+        class="slider"
+        min="0"
+        max="100"
+        step="1"
+        value="50"
+      />
     </div>
-
     <script>
       const video = document.getElementById("camera");
       const warning = document.getElementById("warning");
       const zoomInButton = document.getElementById("zoomIn");
       const zoomOutButton = document.getElementById("zoomOut");
+      const zoomSlider = document.getElementById("zoomSlider");
+      const focusSlider = document.getElementById("focusSlider");
 
       let currentZoom = 1;
 
@@ -59,9 +82,14 @@
                 track.applyConstraints({ advanced: [{ zoom: currentZoom }] });
               }
             });
+            zoomSlider.addEventListener("input", () => {
+              currentZoom = zoomSlider.value;
+              track.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            });
           } else {
             zoomInButton.disabled = true;
             zoomOutButton.disabled = true;
+            zoomSlider.disabled = true;
             warning.textContent =
               "Warning: Zoom capability is not supported on this device.";
           }
@@ -72,6 +100,7 @@
           ) {
             track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
           } else {
+            focusSlider.disabled = true;
             warning.textContent +=
               " Warning: Autofocus capability is not supported on this device.";
           }
@@ -81,6 +110,28 @@
             if (settings.exposureMode !== "manual") {
               warning.textContent =
                 "Warning: Camera exposure mode is automatic. Adjust lighting for best results.";
+            }
+          });
+
+          video.addEventListener("click", (event) => {
+            const rect = video.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            if (
+              capabilities.focusMode &&
+              capabilities.focusMode.includes("single-shot")
+            ) {
+              track.applyConstraints({
+                advanced: [
+                  {
+                    pointsOfInterest: [{ x, y }],
+                  },
+                ],
+              });
+            } else {
+              warning.textContent +=
+                " Warning: Single-shot focus capability is not supported on this device.";
             }
           });
         } catch (error) {
